@@ -1,23 +1,9 @@
-resource "null_resource" "post_policy" {
-  triggers = {
-    # file_sha1 = timestamp() #filesha1("${path.module}/aws_lbc_crds.yaml")
-    file_sha1 = filesha1("${path.module}/aws_lbc_crds.yaml")
-  }
-
-  provisioner "local-exec" {
-    on_failure = fail
-    when       = create
-    command    = <<EOT
-        cn=$(echo ${module.eks.cluster_name})
-        echo "$cn"
-        ${path.module}/crds.sh $cn ${path.module}/aws_lbc_crds.yaml
-        echo "done"
-     EOT
-  }
+resource "kubectl_manifest" "alb_crds" {
+  yaml_body = file("${path.module}/aws_lbc_crds.yaml")
 }
 
 resource "helm_release" "aws-load-balancer-controller" {
-  depends_on = [null_resource.post_policy]
+  depends_on = [kubectl_manifest.alb_crds]
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
