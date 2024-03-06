@@ -36,6 +36,7 @@ module "eks" {
     }
     eks-pod-identity-agent = {
       resolve_conflicts = "OVERWRITE"
+      addon_version     = var.eks_pod_identity_ver
     }
   }
   vpc_id                   = var.vpc_id

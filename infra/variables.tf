@@ -56,6 +56,12 @@ variable "amazon_cloudwatch_observability_ver" {
   default     = "v1.2.1-eksbuild.1"
 }
 
+variable "eks_pod_identity_ver" {
+  description = "amazon-cloudwatch-observability version of the EKS cluster"
+  type        = string
+  default     = "v1.2.0-eksbuild.1"
+}
+
 variable "subnet_ids" {
   description = "A list of subnet IDs where the nodes/node groups will be provisioned. If `control_plane_subnet_ids` is not provided, the EKS cluster control plane (ENIs) will be provisioned in these subnets"
   type        = list(string)
