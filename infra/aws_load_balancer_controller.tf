@@ -1,9 +1,22 @@
-resource "kubectl_manifest" "alb_crds" {
-  yaml_body = file("${path.module}/aws_lbc_crds.yaml")
+##############################################################################################
+# aws-load-balancer-controller needs the below CRDs.it is downloaded from
+#  "github.com/aws/eks-charts/stable/aws-load-balancer-controller//crds?ref=master"
+# and seperated in to 2 separate files so that we can create/maintain it in more terraform way
+# the version is in sync with the aws-load-balancer-controller release 2.7.0
+##############################################################################################
+
+
+resource "kubectl_manifest" "targetgroupbindings_crd" {
+  yaml_body = file("${path.module}/crds/targetgroupbindings_crd.yaml")
 }
 
+resource "kubectl_manifest" "ingressclassparams_crd" {
+  yaml_body = file("${path.module}/crds/ingressclassparams_crd.yaml")
+}
+
+
 resource "helm_release" "aws-load-balancer-controller" {
-  depends_on = [kubectl_manifest.alb_crds]
+  depends_on = [kubectl_manifest.targetgroupbindings_crd, kubectl_manifest.ingressclassparams_crd]
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
