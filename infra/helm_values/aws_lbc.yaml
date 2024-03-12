@@ -1,0 +1,20 @@
+replicaCount: 2
+
+image:
+  repository: public.ecr.aws/eks/aws-load-balancer-controller
+  tag: v2.7.0
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# The name of the Kubernetes cluster. A non-empty value is required
+clusterName: "${clusterName}"
+region: "${region}"
+vpcId: "${vpc}"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  name: "${serviceAccountname}"
