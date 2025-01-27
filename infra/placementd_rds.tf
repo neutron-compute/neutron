@@ -93,7 +93,7 @@ module "placementd_rds" {
   copy_tags_to_snapshot                  = true
   preferred_maintenance_window           = "Sat:20:30-Sat:21:30"
   apply_immediately                      = true
-  skip_final_snapshot                    = false
+  skip_final_snapshot                    = true
   deletion_protection                    = false
   publicly_accessible                    = false # this provides access into RDS in private subnets
   kms_key_id                             = try(aws_kms_key.placementd_rds_encrypt_kms.arn, "")
