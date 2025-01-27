@@ -146,6 +146,13 @@ variable "aws_auth_fargate_profile_pod_execution_role_arns" {
   default     = []
 }
 
+variable "cluster_enabled_log_types" {
+  description = "List of Fargate profile pod execution role ARNs to add to the aws-auth configmap"
+  type        = list(string)
+  default     = []
+}
+
+
 ### Spark namespace and roles variables
 
 variable "spark_roles" {

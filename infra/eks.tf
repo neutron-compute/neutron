@@ -88,7 +88,7 @@ module "eks" {
       ]
     }
   }
-  cluster_enabled_log_types = ["audit", "api", "authenticator", "controllerManager", "scheduler", ]
+  cluster_enabled_log_types = var.cluster_enabled_log_types
   tags = merge(var.tags, {
     # NOTE - if creating multiple security groups with this module, only tag the
     # security group that Karpenter should utilize with the following tag
