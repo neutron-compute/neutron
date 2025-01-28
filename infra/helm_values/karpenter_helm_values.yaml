@@ -131,7 +131,6 @@ controller:
   #   readOnly: true
   # -- Additional sidecarContainer config
   sidecarContainer: ${datadog_sidecar}
-    # ${datadog_sidecar}
   # -- Additional volumeMounts for the sidecar - this will be added to the volume mounts on top of extraVolumeMounts
   sidecarVolumeMounts: []
   metrics:
