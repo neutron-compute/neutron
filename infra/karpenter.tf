@@ -98,7 +98,7 @@ resource "helm_release" "karpenter" {
       }
     )
   ]
-  depends_on = [module.karpenter, module.eks.helm_release.karpenter]
+  depends_on = [module.karpenter, module.eks, helm_release.karpenter_crd]
 }
 
 resource "kubectl_manifest" "karpenter_node_class" {
