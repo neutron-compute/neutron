@@ -50,10 +50,11 @@ module "eks" {
   cluster_security_group_additional_rules = var.cluster_security_group_additional_rules
   fargate_profiles = {
     coredns = {
+      subnet_ids = var.subnet_ids
       selectors = [
         {
-          namespace = "karpenter"
-          labels    = { k8s-app = kube-dns }
+          namespace = "kube-system"
+          labels    = { k8s-app = "kube-dns" }
         }
       ]
     }
