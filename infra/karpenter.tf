@@ -66,10 +66,19 @@ module "karpenter" {
   tags = var.tags
 }
 
-resource "helm_release" "karpenter" {
-  namespace        = "karpenter"
-  create_namespace = true
+## adding kube-system as the default namespace due to https://karpenter.sh/docs/getting-started/getting-started-with-karpenter/#preventing-apiserver-request-throttling
+resource "helm_release" "karpenter_crd" {
+  namespace  = "kube-system"
+  name       = "karpenter-crd"
+  repository = "oci://public.ecr.aws/karpenter"
+  chart      = "karpenter-crd"
+  version    = local.karpenter_version
+  depends_on = [module.karpenter, module.eks]
+}
 
+
+resource "helm_release" "karpenter" {
+  namespace  = "kube-system"
   name       = "karpenter"
   repository = "oci://public.ecr.aws/karpenter"
   chart      = "karpenter"
@@ -89,7 +98,7 @@ resource "helm_release" "karpenter" {
       }
     )
   ]
-  depends_on = [module.karpenter, module.eks]
+  depends_on = [module.karpenter, module.eks.helm_release.karpenter]
 }
 
 resource "kubectl_manifest" "karpenter_node_class" {

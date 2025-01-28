@@ -58,16 +58,6 @@ module "eks" {
         }
       ]
     }
-    karpenter = {
-      iam_role_additional_policies = {
-        cludwatch_log_policy = aws_iam_policy.fargate_logging.arn
-      }
-      selectors = [
-        {
-          namespace = "karpenter"
-        }
-      ]
-    }
     kube-system = {
       iam_role_additional_policies = {
         cludwatch_log_policy = aws_iam_policy.fargate_logging.arn
