@@ -1,4 +1,5 @@
 locals {
+  karpenter_namespace = "kube-system"
   spark_role_nodepool_mapping = merge([
     for teams_key in keys(var.spark_roles) : {
       for nodepools in keys(var.spark_roles[teams_key]) :
@@ -49,26 +50,26 @@ locals {
 ################################################################################
 
 module "karpenter" {
-  source                        = "terraform-aws-modules/eks/aws//modules/karpenter"
-  version                       = "20.33.1"
-  cluster_name                  = module.eks.cluster_name
-  enable_irsa                   = true
-  irsa_oidc_provider_arn        = module.eks.oidc_provider_arn
-  node_iam_role_use_name_prefix = false
-  node_iam_role_name            = "Karpenter-${module.eks.cluster_name}"
+  source                          = "terraform-aws-modules/eks/aws//modules/karpenter"
+  version                         = "20.33.1"
+  cluster_name                    = module.eks.cluster_name
+  enable_irsa                     = true
+  irsa_oidc_provider_arn          = module.eks.oidc_provider_arn
+  node_iam_role_use_name_prefix   = false
+  node_iam_role_name              = "Karpenter-${module.eks.cluster_name}"
+  irsa_namespace_service_accounts = ["${local.karpenter_namespace}:karpenter"]
   # Used to attach additional IAM policies to the Karpenter node IAM role
   node_iam_role_additional_policies = {
     AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
     CloudWatchAgentServerPolicy  = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
     AWSXrayWriteOnlyAccess       = "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
   }
-
   tags = var.tags
 }
 
 ## adding kube-system as the default namespace due to https://karpenter.sh/docs/getting-started/getting-started-with-karpenter/#preventing-apiserver-request-throttling
 resource "helm_release" "karpenter_crd" {
-  namespace  = "kube-system"
+  namespace  = local.karpenter_namespace
   name       = "karpenter-crd"
   repository = "oci://public.ecr.aws/karpenter"
   chart      = "karpenter-crd"
@@ -78,7 +79,7 @@ resource "helm_release" "karpenter_crd" {
 
 
 resource "helm_release" "karpenter" {
-  namespace  = "kube-system"
+  namespace  = local.karpenter_namespace
   name       = "karpenter"
   repository = "oci://public.ecr.aws/karpenter"
   chart      = "karpenter"
