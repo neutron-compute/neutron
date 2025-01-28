@@ -13,7 +13,7 @@ locals {
     }
   ]...)
 
-  karpenter_version = "v1.1"
+  karpenter_version = "1.1.2"
   ### This is required to monitor and create datadog metrics for karpenter integration
   ### the formatting is absolutely important here as we are pushing a mutiline string as 
   ### yaml to the helm value file
