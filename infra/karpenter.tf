@@ -103,12 +103,13 @@ resource "helm_release" "karpenter" {
 }
 
 resource "kubectl_manifest" "karpenter_node_class" {
+  for_each  = local.spark_role_nodepool_nodetype_mapping
   yaml_body = <<-YAML
-    apiVersion: karpenter.k8s.aws/v1beta1
+    apiVersion: karpenter.k8s.aws/v1
     kind: EC2NodeClass
     metadata:
-      name: default
-      namespace: karpenter
+      name: "${each.key}-nodeclass"
+      namespace: ${local.karpenter_namespace}
     spec:
       amiFamily: AL2
       role: ${module.karpenter.node_iam_role_name}
@@ -131,11 +132,11 @@ resource "kubectl_manifest" "karpenter_node_class" {
 resource "kubectl_manifest" "karpenter_node_pool" {
   for_each  = local.spark_role_nodepool_nodetype_mapping
   yaml_body = <<-YAML
-    apiVersion: karpenter.sh/v1beta1
+    apiVersion: karpenter.sh/v1
     kind: NodePool
     metadata:
       name: ${each.key}
-      namespace: "karpenter"
+      namespace: ${local.karpenter_namespace}
       labels:
         type: karpenter
         provisioner: default
@@ -153,7 +154,7 @@ resource "kubectl_manifest" "karpenter_node_pool" {
             provisioner: default
             NodeGroupType: ${each.key}
           nodeClassRef:
-            name: default
+            name: "${each.key}-nodeclass"
           requirements:
             - key: "karpenter.sh/capacity-type"
               operator: In
