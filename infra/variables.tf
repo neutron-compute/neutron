@@ -78,10 +78,16 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "additional_rbac_config" {
-  description = "List of user maps to add to the aws-auth configmap"
-  type        = list(any)
-  default     = []
+variable "access_entries" {
+  description = "Map of access entries to add to the cluster"
+  type        = any
+  default     = {}
+}
+
+variable "enable_cluster_creator_admin_permissions" {
+  description = "Indicates whether or not to add the cluster creator (the identity used by Terraform) as an administrator via access entry"
+  type        = bool
+  default     = true
 }
 
 variable "eks_endpoint_whitelist" {
