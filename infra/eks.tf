@@ -49,6 +49,14 @@ module "eks" {
   create_node_security_group              = false
   cluster_security_group_additional_rules = var.cluster_security_group_additional_rules
   fargate_profiles = {
+    coredns = {
+      selectors = [
+        {
+          namespace = "karpenter"
+          labels    = { k8s-app = kube-dns }
+        }
+      ]
+    }
     karpenter = {
       iam_role_additional_policies = {
         cludwatch_log_policy = aws_iam_policy.fargate_logging.arn
