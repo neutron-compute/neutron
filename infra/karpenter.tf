@@ -119,6 +119,8 @@ resource "kubectl_manifest" "karpenter_node_class" {
       securityGroupSelectorTerms:
         - tags:
             karpenter.sh/discovery: ${module.eks.cluster_name}
+      amiSelectorTerms:
+        - alias: al2023@v20250123
       tags:
         karpenter.sh/discovery: ${module.eks.cluster_name}
         KarpenerProvisionerName: "default"
