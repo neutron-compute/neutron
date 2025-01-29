@@ -111,7 +111,7 @@ resource "kubectl_manifest" "karpenter_node_class" {
       name: "${each.key}-nodeclass"
       namespace: ${local.karpenter_namespace}
     spec:
-      amiFamily: AL2
+      amiFamily: AL2023
       role: ${module.karpenter.node_iam_role_name}
       subnetSelectorTerms:
         - tags:
