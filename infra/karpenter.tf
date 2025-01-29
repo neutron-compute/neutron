@@ -180,6 +180,7 @@ resource "kubectl_manifest" "karpenter_node_pool" {
         cpu: 1000
       disruption:
         consolidationPolicy: WhenEmptyOrUnderutilized
+        consolidate_after: 1h
         template:
           spec:
           expireAfter: 720h
