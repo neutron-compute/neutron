@@ -132,6 +132,8 @@ resource "kubectl_manifest" "karpenter_node_class" {
 }
 
 resource "kubectl_manifest" "karpenter_node_pool" {
+  ## some good options mentioned here
+  ## https://github.com/cloudposse/terraform-aws-components/blob/main/modules/eks/karpenter-node-pool/README.md
   for_each  = local.spark_role_nodepool_nodetype_mapping
   yaml_body = <<-YAML
     apiVersion: karpenter.sh/v1
