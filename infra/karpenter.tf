@@ -156,6 +156,8 @@ resource "kubectl_manifest" "karpenter_node_pool" {
             provisioner: default
             NodeGroupType: ${each.key}
           nodeClassRef:
+            group: karpenter.k8s.aws
+            kind: EC2NodeClass
             name: "${each.key}-nodeclass"
           requirements:
             - key: "karpenter.sh/capacity-type"
@@ -177,7 +179,7 @@ resource "kubectl_manifest" "karpenter_node_pool" {
       limits:
         cpu: 1000
       disruption:
-        consolidationPolicy: WhenUnderutilized
+        consolidationPolicy: WhenEmptyOrUnderutilized
         expireAfter: 1h
   YAML
 
