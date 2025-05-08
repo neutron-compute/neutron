@@ -1,4 +1,5 @@
 locals {
+  karpenter_namespace = "kube-system"
   spark_role_nodepool_mapping = merge([
     for teams_key in keys(var.spark_roles) : {
       for nodepools in keys(var.spark_roles[teams_key]) :
@@ -13,7 +14,7 @@ locals {
     }
   ]...)
 
-  karpenter_version = "v0.34.0"
+  karpenter_version = "1.1.2"
   ### This is required to monitor and create datadog metrics for karpenter integration
   ### the formatting is absolutely important here as we are pushing a mutiline string as 
   ### yaml to the helm value file
@@ -49,27 +50,36 @@ locals {
 ################################################################################
 
 module "karpenter" {
-  source                        = "terraform-aws-modules/eks/aws//modules/karpenter"
-  version                       = "20.2.1"
-  cluster_name                  = module.eks.cluster_name
-  enable_irsa                   = true
-  irsa_oidc_provider_arn        = module.eks.oidc_provider_arn
-  node_iam_role_use_name_prefix = false
-  node_iam_role_name            = "Karpenter-${module.eks.cluster_name}"
+  source                          = "terraform-aws-modules/eks/aws//modules/karpenter"
+  version                         = "20.33.1"
+  cluster_name                    = module.eks.cluster_name
+  enable_irsa                     = true
+  irsa_oidc_provider_arn          = module.eks.oidc_provider_arn
+  node_iam_role_use_name_prefix   = false
+  node_iam_role_name              = "Karpenter-${module.eks.cluster_name}"
+  irsa_namespace_service_accounts = ["${local.karpenter_namespace}:karpenter"]
   # Used to attach additional IAM policies to the Karpenter node IAM role
   node_iam_role_additional_policies = {
     AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
     CloudWatchAgentServerPolicy  = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
     AWSXrayWriteOnlyAccess       = "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
   }
-
   tags = var.tags
 }
 
-resource "helm_release" "karpenter" {
-  namespace        = "karpenter"
-  create_namespace = true
+## adding kube-system as the default namespace due to https://karpenter.sh/docs/getting-started/getting-started-with-karpenter/#preventing-apiserver-request-throttling
+resource "helm_release" "karpenter_crd" {
+  namespace  = local.karpenter_namespace
+  name       = "karpenter-crd"
+  repository = "oci://public.ecr.aws/karpenter"
+  chart      = "karpenter-crd"
+  version    = local.karpenter_version
+  depends_on = [module.karpenter, module.eks]
+}
 
+
+resource "helm_release" "karpenter" {
+  namespace  = local.karpenter_namespace
   name       = "karpenter"
   repository = "oci://public.ecr.aws/karpenter"
   chart      = "karpenter"
@@ -89,18 +99,19 @@ resource "helm_release" "karpenter" {
       }
     )
   ]
-  depends_on = [module.karpenter, module.eks]
+  depends_on = [module.karpenter, module.eks, helm_release.karpenter_crd]
 }
 
 resource "kubectl_manifest" "karpenter_node_class" {
+  for_each  = local.spark_role_nodepool_nodetype_mapping
   yaml_body = <<-YAML
-    apiVersion: karpenter.k8s.aws/v1beta1
+    apiVersion: karpenter.k8s.aws/v1
     kind: EC2NodeClass
     metadata:
-      name: default
-      namespace: karpenter
+      name: "${each.key}-nodeclass"
+      namespace: ${local.karpenter_namespace}
     spec:
-      amiFamily: AL2
+      amiFamily: AL2023
       role: ${module.karpenter.node_iam_role_name}
       subnetSelectorTerms:
         - tags:
@@ -108,6 +119,8 @@ resource "kubectl_manifest" "karpenter_node_class" {
       securityGroupSelectorTerms:
         - tags:
             karpenter.sh/discovery: ${module.eks.cluster_name}
+      amiSelectorTerms:
+        - alias: al2023@v20250123
       tags:
         karpenter.sh/discovery: ${module.eks.cluster_name}
         KarpenerProvisionerName: "default"
@@ -119,13 +132,15 @@ resource "kubectl_manifest" "karpenter_node_class" {
 }
 
 resource "kubectl_manifest" "karpenter_node_pool" {
+  ## some good options mentioned here
+  ## https://github.com/cloudposse/terraform-aws-components/blob/main/modules/eks/karpenter-node-pool/README.md
   for_each  = local.spark_role_nodepool_nodetype_mapping
   yaml_body = <<-YAML
-    apiVersion: karpenter.sh/v1beta1
+    apiVersion: karpenter.sh/v1
     kind: NodePool
     metadata:
       name: ${each.key}
-      namespace: "karpenter"
+      namespace: ${local.karpenter_namespace}
       labels:
         type: karpenter
         provisioner: default
@@ -143,7 +158,9 @@ resource "kubectl_manifest" "karpenter_node_pool" {
             provisioner: default
             NodeGroupType: ${each.key}
           nodeClassRef:
-            name: default
+            group: karpenter.k8s.aws
+            kind: EC2NodeClass
+            name: "${each.key}-nodeclass"
           requirements:
             - key: "karpenter.sh/capacity-type"
               operator: In
@@ -164,8 +181,11 @@ resource "kubectl_manifest" "karpenter_node_pool" {
       limits:
         cpu: 1000
       disruption:
-        consolidationPolicy: WhenUnderutilized
-        expireAfter: 1h
+        consolidationPolicy: WhenEmptyOrUnderutilized
+        consolidateAfter: 1h
+        template:
+          spec:
+          expireAfter: 720h
   YAML
 
   depends_on = [

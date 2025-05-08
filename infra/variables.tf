@@ -78,10 +78,16 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "additional_rbac_config" {
-  description = "List of user maps to add to the aws-auth configmap"
-  type        = list(any)
-  default     = []
+variable "access_entries" {
+  description = "Map of access entries to add to the cluster"
+  type        = any
+  default     = {}
+}
+
+variable "enable_cluster_creator_admin_permissions" {
+  description = "Indicates whether or not to add the cluster creator (the identity used by Terraform) as an administrator via access entry"
+  type        = bool
+  default     = true
 }
 
 variable "eks_endpoint_whitelist" {
@@ -146,6 +152,13 @@ variable "aws_auth_fargate_profile_pod_execution_role_arns" {
   default     = []
 }
 
+variable "cluster_enabled_log_types" {
+  description = "List of Fargate profile pod execution role ARNs to add to the aws-auth configmap"
+  type        = list(string)
+  default     = []
+}
+
+
 ### Spark namespace and roles variables
 
 variable "spark_roles" {
@@ -200,5 +213,86 @@ variable "cluster_security_group_additional_rules" {
   description = "List of additional security group rules to add to the cluster security group created. Set `source_node_security_group = true` inside rules to set the `node_security_group` as source"
   type        = any
   default     = {}
+}
+
+########placementd variables#######################
+
+##########placementd rds variables################
+
+variable "placementd_rds_cidr" {
+  description = "additional cidrs to have access to placementd rds "
+  type        = list(string)
+  default     = []
+}
+
+variable "placementd_rds_name" {
+  type        = string
+  description = "placementd RDS name"
+  default     = "placementd-rds"
+}
+
+variable "placementd_rds_engine_version" {
+  type        = string
+  description = "placementd engine version"
+  default     = "16.1"
+}
+
+variable "placementd_rds_engine" {
+  type        = string
+  description = "placementd RDS engine"
+  default     = "aurora-postgresql"
+}
+
+variable "placementd_rds_group_family" {
+  type        = string
+  description = "placementd RDS group family"
+  default     = "aurora-postgresql16"
+}
+
+variable "placementd_rds_backup_retention_period" {
+  type        = number
+  description = "placementd RDS backup retention period"
+  default     = "30"
+}
+
+variable "placementd_rds_instances" {
+  type        = map(any)
+  description = "contains placementd RDS instances"
+  default = {
+    1 = {
+      identifier     = "placementd-postgres-node-1"
+      instance_class = "db.t3.medium"
+    }
+  }
+}
+
+variable "placementd_kms_alias" {
+  description = "KMS customer master key alias, that allows DBencryption"
+  type        = string
+  default     = "alias/placementd-rds"
+}
+
+
+#######################placementd ecs cluster variables##############
+variable "placementd_ecs_cluster_name" {
+  type        = string
+  description = "placementd RDS name"
+  default     = "placementd-ecs"
+}
+
+variable "fargate_spot_capacity_provider_weight" {
+  type        = string
+  description = "describe your variable"
+  default     = "50"
+}
+variable "fargate_capacity_provider_weight" {
+  type        = string
+  description = "describe your variable"
+  default     = "50"
+}
+variable "placementd_ingress_cidr_blocks" {
+  type        = list(any)
+  description = "describe your variable"
+  default     = ["0.0.0.0/0"]
 }
 

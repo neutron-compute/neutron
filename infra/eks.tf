@@ -4,13 +4,14 @@
 
 module "eks" {
   source          = "terraform-aws-modules/eks/aws"
-  version         = "20.2.1"
+  version         = "20.33.1"
   cluster_name    = var.cluster_name
   cluster_version = var.cluster_version
   # authentication_mode = "CONFIG_MAP"
   enable_cluster_creator_admin_permissions = true
   kms_key_enable_default_policy            = false
   cluster_encryption_config                = {}
+  access_entries                           = var.access_entries
   cluster_addons = {
     coredns = {
       resolve_conflicts = "OVERWRITE"
@@ -31,8 +32,9 @@ module "eks" {
       service_account_role_arn = module.ebs_csi_driver_role.iam_role_arn
     }
     amazon-cloudwatch-observability = {
-      resolve_conflicts = "OVERWRITE"
-      addon_version     = var.amazon_cloudwatch_observability_ver
+      resolve_conflicts        = "OVERWRITE"
+      addon_version            = var.amazon_cloudwatch_observability_ver
+      service_account_role_arn = module.aws_cw_observability.iam_role_arn
     }
     eks-pod-identity-agent = {
       resolve_conflicts = "OVERWRITE"
@@ -47,13 +49,12 @@ module "eks" {
   create_node_security_group              = false
   cluster_security_group_additional_rules = var.cluster_security_group_additional_rules
   fargate_profiles = {
-    karpenter = {
-      iam_role_additional_policies = {
-        cludwatch_log_policy = aws_iam_policy.fargate_logging.arn
-      }
+    coredns = {
+      subnet_ids = var.subnet_ids
       selectors = [
         {
-          namespace = "karpenter"
+          namespace = "kube-system"
+          labels    = { k8s-app = "kube-dns" }
         }
       ]
     }
@@ -88,7 +89,7 @@ module "eks" {
       ]
     }
   }
-  cluster_enabled_log_types = ["audit", "api", "authenticator", "controllerManager", "scheduler", ]
+  cluster_enabled_log_types = var.cluster_enabled_log_types
   tags = merge(var.tags, {
     # NOTE - if creating multiple security groups with this module, only tag the
     # security group that Karpenter should utilize with the following tag
